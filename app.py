@@ -1,7 +1,10 @@
 import os
-file_id = os.getenv("DRIVE_FILE_ID")
-url = f"https://drive.google.com/uc?id={file_id}&export=download"
-data = pd.read_csv(url)
+file_id = "10P54JcuW-SPJYjX_ce623Ql1N7AH78oF"
+output_path = "retail data.csv"
+if not os.path.exists(output_path):
+    print("Downloading dataset from Google Drive...")
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, output_path, quiet=False)
 from time import time
 import pandas as pd
 import numpy as np
