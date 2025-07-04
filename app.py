@@ -1,3 +1,14 @@
+import os
+import gdown
+# File ID from your Google Drive share link
+file_id = "10P54JcuW-SPJYjX_ce623Ql1N7AH78oF"
+output_path = "retail data.csv"
+
+# Download if not already present
+if not os.path.exists(output_path):
+    print("Downloading dataset from Google Drive...")
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, output_path, quiet=False)
 from time import time
 import pandas as pd
 import numpy as np
@@ -11,7 +22,6 @@ from dash import dcc, html, Input, Output, State
 import plotly.express as px
 import plotly.graph_objects as go
 from fpdf import FPDF
-import os
 from generate_report import build_and_return_pdf
 # DATA LOADING & PREPROCESSING
 ### It has encoding issues, so I specify the encoding to match with its encoding
