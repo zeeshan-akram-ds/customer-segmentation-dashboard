@@ -3,19 +3,21 @@ import pandas as pd
 import plotly.express as px
 import matplotlib
 matplotlib.use('Agg') 
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import seaborn as sns
 from fpdf import FPDF
 import kaleido
 import re
-os.makedirs(os.path.join("assets", "reports"), exist_ok=True)
 def clean_markdown(text):
     """
-    Remove markdown-style formatting for plain-text PDF rendering.
+    Removes markdown formatting (like **bold** and bullets) for plain-text PDF rendering.
     """
-    # Remove bold (**text**)
+    # Remove **bold** formatting
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
-    # Replace markdown bullets
+    
+    # Remove bullet points (-)
     text = re.sub(r"^\s*-\s*", "", text, flags=re.MULTILINE)
+    
     return text
 def save_charts(data, rfm):
     import plotly.express as px
@@ -49,8 +51,6 @@ def save_charts(data, rfm):
     heatmap_data = data.copy()
     heatmap_data['YearMonth'] = heatmap_data['InvoiceDate'].dt.to_period('M').astype(str)
     pivot = heatmap_data.pivot_table(index='Country', columns='YearMonth', values='Revenue', aggfunc='sum', fill_value=0)
-    import seaborn as sns
-    import matplotlib.pyplot as plt
 
     plt.figure(figsize=(14, 8))
     sns.heatmap(pivot, cmap='Blues', linewidths=0.5)
@@ -58,11 +58,12 @@ def save_charts(data, rfm):
     plt.tight_layout()
     plt.savefig("charts/revenue_heatmap.png")
     plt.close()
-# Step 4: Generate PDF
+# Generating PDF
 class PDFReport(FPDF):
     def header(self):
         if self.page_no() == 1:
-            return  # No header on cover
+            # No header on cover
+            return  
         self.set_font("Arial", "B", 12)
         self.set_text_color(30, 30, 30)
         self.cell(0, 10, "Customer Segmentation Report", ln=True, align='C')
@@ -70,7 +71,8 @@ class PDFReport(FPDF):
 
     def footer(self):
         if self.page_no() == 1:
-            return  # No footer on cover
+            # No footer on cover
+            return  
         self.set_y(-15)
         self.set_font("Arial", "I", 8)
         self.set_text_color(120, 120, 120)
@@ -80,7 +82,8 @@ class PDFReport(FPDF):
         self.add_page()
         self.set_font("Arial", "B", 24)
         self.set_text_color(0, 102, 204)
-        self.cell(0, 80, "", ln=True)  # Spacer
+        # Spacer
+        self.cell(0, 80, "", ln=True)  
         self.cell(0, 10, "Customer Segmentation Dashboard", ln=True, align='C')
         self.ln(10)
         self.set_font("Arial", "I", 14)
@@ -111,7 +114,7 @@ def generate_pdf_report(insights_text):
     # Cover Page
     pdf.cover_page()
 
-    # Section 1: Objective & Dataset
+    # Objective & Dataset
     pdf.add_page()
     pdf.section_title("1. Objective & Problem Statement")
     pdf.section_body(
@@ -134,12 +137,12 @@ def generate_pdf_report(insights_text):
         "were then built to make this data actionable."
     )
 
-    # Section 4: Insights
+    # Insights
     pdf.add_page()
     pdf.section_title("4. Executive Summary (Insights)")
     pdf.section_body(clean_markdown(insights_text))
 
-    # Section 5: Visualizations
+    # Visualizations
     chart_titles = {
         "monthly_revenue.png": "Monthly Revenue Trend",
         "top_customers.png": "Top 10 Customers by Revenue",
@@ -151,7 +154,7 @@ def generate_pdf_report(insights_text):
     for file, title in chart_titles.items():
         pdf.add_image_section(os.path.join("charts", file), title)
 
-    # Save
+    # Saving
     output_path = "reports/Customer_Segmentation_Report.pdf"
     os.makedirs("reports", exist_ok=True)
     pdf.output(output_path)
