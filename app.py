@@ -174,7 +174,7 @@ def create_kpi_card(title, value, color):
     })
 # ----------------------
 
-# 🔷 Layout
+# Layout
 app.layout = html.Div([
 
     html.Div([
@@ -218,7 +218,8 @@ app.layout = html.Div([
                 {'label': f"Customer {int(cid)}", 'value': int(cid)}
                 for cid in sorted(data['CustomerID'].dropna().unique())
             ],
-            value=None,  # Nothing selected initially
+            # Nothing selected initially
+            value=None, 
             placeholder="Search by Customer ID...",
             clearable=True
             ),
@@ -252,8 +253,8 @@ app.layout = html.Div([
             dcc.Tab(label='Raw Data View', value='data'),
             dcc.Tab(label='Dashboard Guide', value='guide')
                     ]),
-
-    html.Div(id='tab-content')  # Dynamic content goes here
+    # Dynamic content goes here
+    html.Div(id='tab-content')  
 ], style={
     'marginLeft': '20%',
     'padding': '20px',
@@ -269,31 +270,39 @@ app.layout = html.Div([
     Input('date-range-picker', 'end_date'),
 )
 def update_all_kpis(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters/countries if none are selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Filter the dataset based on cluster, country, and date range
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
     ]
+
+    # Merge with RFM metrics
     merged = pd.merge(filtered, rfm, on='CustomerID', how='left')
 
+    # KPIs
     total_customers = merged['CustomerID'].nunique()
     total_revenue = round(merged['Revenue'].sum(), 2)
     avg_frequency = round(merged['Frequency'].mean(), 2)
     avg_recency = round(merged['Recency'].mean(), 2)
 
+    # Average Order Value (AOV)
     order_count = merged['InvoiceNo'].nunique()
     aov = round(total_revenue / order_count, 2) if order_count else 0
 
+    # Returning vs. One-Time Customers
     cust_order_counts = merged.groupby('CustomerID')['InvoiceNo'].nunique()
     returning = cust_order_counts[cust_order_counts > 1].count()
     one_time = cust_order_counts[cust_order_counts == 1].count()
 
+    # Return styled KPI cards
     kpis = [
         create_kpi_card("Total Customers", total_customers, "#007bff"),
         create_kpi_card("Total Revenue", f"${total_revenue}", "#28a745"),
@@ -303,13 +312,16 @@ def update_all_kpis(selected_clusters, selected_countries, start_date, end_date)
         create_kpi_card("Returning Customers", returning, "#17a2b8"),
         create_kpi_card("One-Time Customers", one_time, "#fd7e14")
     ]
+    
     return kpis
+# Add each customer's latest invoice date to the RFM table
 rfm = pd.merge(
     rfm,
     data[['CustomerID', 'InvoiceDate']].drop_duplicates(subset='CustomerID'),
     on='CustomerID',
     how='left'
 )
+# Callback to update RFM scatter plot
 @app.callback(
     Output('rfm-scatter', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -319,11 +331,13 @@ rfm = pd.merge(
     Input('date-range-picker', 'end_date'),
 )
 def update_rfm_scatter(selected_clusters, selected_countries, selected_customer, start_date, end_date):
+    # Use all clusters/countries if none selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Filter RFM based on selected filters
     filtered = rfm[
         (rfm['Cluster'].isin(selected_clusters)) &
         (rfm['Country'].isin(selected_countries)) &
@@ -331,10 +345,11 @@ def update_rfm_scatter(selected_clusters, selected_countries, selected_customer,
         (rfm['InvoiceDate'] <= end_date)
     ]
 
+    # Return placeholder chart if no data matches
     if filtered.empty:
         return px.scatter(title="No Data Available")
 
-    # Base scatter
+    # Create main scatter plot: Recency vs Monetary, colored by Cluster
     fig = px.scatter(
         filtered,
         x='Recency',
@@ -353,20 +368,23 @@ def update_rfm_scatter(selected_clusters, selected_countries, selected_customer,
         color_discrete_sequence=px.colors.qualitative.Safe
     )
 
+    # Layout adjustments
     fig.update_layout(
         height=520,
         margin=dict(t=60, l=80, r=20, b=40),
         legend_title='Cluster'
     )
 
+    # Scatter marker styling
     fig.update_traces(
         marker=dict(size=10, opacity=0.6, line=dict(width=1, color='black'))
     )
 
-    # Highlight selected customer
+    # If a customer is selected, highlight on the chart
     if selected_customer and selected_customer in filtered['CustomerID'].values:
         row = filtered[filtered['CustomerID'] == selected_customer]
-        
+
+        # Add a special trace for the selected customer
         fig.add_trace(
             go.Scatter(
                 x=row['Recency'],
@@ -385,14 +403,15 @@ def update_rfm_scatter(selected_clusters, selected_countries, selected_customer,
                 hovertemplate='Customer ID: %{text}<br>Recency: %{x}<br>Monetary: %{y}<extra></extra>'
             )
         )
-    
-        # Auto zoom: center on this customer
+
+        # Zoom around selected customer's data
         fig.update_layout(
             xaxis=dict(range=[row['Recency'].values[0] - 10, row['Recency'].values[0] + 10]),
             yaxis=dict(range=[row['Monetary'].values[0] - 500, row['Monetary'].values[0] + 500])
         )
 
     return fig
+# Callback to update the Monthly Revenue line chart
 @app.callback(
     Output('monthly-revenue-line', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -401,31 +420,30 @@ def update_rfm_scatter(selected_clusters, selected_countries, selected_customer,
     Input('date-range-picker', 'end_date'),
 )
 def update_monthly_revenue(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters/countries if none selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
-
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
-    # Filter original data (not RFM)
+    # Filter main dataset based on user selections
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-    # Create Year-Month column
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
+
+    # Prepare YearMonth column
     filtered = filtered.copy()
     filtered['YearMonth'] = filtered['InvoiceDate'].dt.to_period('M').astype(str)
 
-    # Group by Year-Month
+    # Aggregate revenue per month
     monthly_rev = filtered.groupby('YearMonth')['Revenue'].sum().reset_index()
-
-    # Sort by date
     monthly_rev['YearMonth'] = pd.to_datetime(monthly_rev['YearMonth'])
     monthly_rev.sort_values('YearMonth', inplace=True)
 
-    # Plot
+    # Build line chart
     fig = px.line(
         monthly_rev,
         x='YearMonth',
@@ -436,13 +454,18 @@ def update_monthly_revenue(selected_clusters, selected_countries, start_date, en
         template='plotly_white'
     )
 
+    # Style line
     fig.update_traces(line=dict(color='#007bff', width=3))
-    fig.update_layout(height=400, margin=dict(t=50, l=20, r=20, b=40))
     fig.update_traces(
-    hovertemplate='%{x|%b %Y}<br>Revenue: $%{y:,.2f}',
-    mode='lines+markers'
+        hovertemplate='%{x|%b %Y}<br>Revenue: $%{y:,.2f}',
+        mode='lines+markers'
     )
+
+    # Layout tweaks
+    fig.update_layout(height=400, margin=dict(t=50, l=20, r=20, b=40))
+
     return fig
+# Callback to update the "Top 10 Countries by Revenue" pie chart
 @app.callback(
     Output('country-revenue-pie', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -451,21 +474,21 @@ def update_monthly_revenue(selected_clusters, selected_countries, start_date, en
     Input('date-range-picker', 'end_date')
 )
 def update_country_pie(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters/countries if user hasn't selected any
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
-
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
-    # Filter the main data
+    # Apply filters on the main dataset
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
 
-    # Group by Country and aggregate Revenue
+    # Calculate total revenue per country and pick top 10
     country_rev = (
         filtered.groupby('Country')['Revenue']
         .sum()
@@ -474,22 +497,25 @@ def update_country_pie(selected_clusters, selected_countries, start_date, end_da
         .reset_index()
     )
 
-    # Plot the pie chart
+    # Build donut-style pie chart
     fig = px.pie(
         country_rev,
         names='Country',
         values='Revenue',
         title='Top 10 Countries by Revenue',
-        hole=0.4,
+        # Creates the donut shape
+        hole=0.4,  
         color_discrete_sequence=px.colors.sequential.RdBu
     )
 
+    # Style and formatting
     fig.update_layout(margin=dict(t=40, l=10, r=10, b=10))
     fig.update_traces(
         hovertemplate="%{label}<br>Revenue: $%{value:,.2f}<br>Share: %{percent}"
     )
 
     return fig
+# Callback to update the "Top 10 Customers by Revenue" bar chart
 @app.callback(
     Output('top-customers-bar', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -498,27 +524,32 @@ def update_country_pie(selected_clusters, selected_countries, start_date, end_da
     Input('date-range-picker', 'end_date'),
 )
 def update_top_customers_bar(selected_clusters, selected_countries, start_date, end_date):
+    # Fallback to all clusters if none are selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
 
+    # Fallback to all countries if none are selected
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Filter dataset based on inputs
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-    top_customers = (
-    filtered.groupby('CustomerID')['Revenue']
-    .sum()
-    .sort_values(ascending=False)
-    .head(10)
-    .reset_index()
-)
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
 
-    # Merge with RFM to get segment labels
+    # Aggregate total revenue per customer and select top 10
+    top_customers = (
+        filtered.groupby('CustomerID')['Revenue']
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+    )
+
+    # Merge with RFM to attach customer segment labels
     top_customers = pd.merge(
         top_customers,
         rfm[['CustomerID', 'Segment']],
@@ -526,18 +557,25 @@ def update_top_customers_bar(selected_clusters, selected_countries, start_date, 
         how='left'
     )
 
+    # Create horizontal bar chart with color by segment
     fig = px.bar(
-    top_customers,
-    x='CustomerID',
-    y='Revenue',
-    color='Segment',  # Changed from 'Revenue'
-    title='Top 10 Customers by Revenue',
-    color_discrete_sequence=px.colors.qualitative.Safe
+        top_customers,
+        x='CustomerID',
+        y='Revenue',
+        color='Segment',
+        title='Top 10 Customers by Revenue',
+        color_discrete_sequence=px.colors.qualitative.Safe
     )
-    fig.update_layout(template='plotly_white', margin=dict(t=40, l=10, r=10, b=40))
+
+    # Style the chart layout and hover info
+    fig.update_layout(
+        template='plotly_white',
+        margin=dict(t=40, l=10, r=10, b=40)
+    )
     fig.update_traces(
-    hovertemplate="Customer ID: %{x}<br>Total Revenue: $%{y:,.2f}"
+        hovertemplate="Customer ID: %{x}<br>Total Revenue: $%{y:,.2f}"
     )
+
     return fig
 @app.callback(
     Output('tab-content', 'children'),
@@ -669,6 +707,7 @@ def render_tab_content(tab):
             ], style={'marginBottom': '25px'})
             
         ], style={'padding': '40px 60px'})
+# Callback to display a preview table of the filtered raw data (top 100 rows)
 @app.callback(
     Output('raw-data-table', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -677,25 +716,40 @@ def render_tab_content(tab):
     Input('date-range-picker', 'end_date')
 )
 def update_raw_table(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters if none are selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
 
+    # Use all countries if none are selected
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Apply filters on the full dataset
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-    preview = preview = filtered[['InvoiceNo', 'CustomerID', 'Country', 'Revenue']].head(100)
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
 
+    # Select relevant columns and limit to top 100 rows for preview
+    preview = filtered[['InvoiceNo', 'CustomerID', 'Country', 'Revenue']].head(100)
+
+    # Create a simple table figure using Plotly
     fig = go.Figure(data=[go.Table(
-        header=dict(values=list(preview.columns), fill_color='lightgray', align='left'),
-        cells=dict(values=[preview[col] for col in preview.columns], align='left')
+        header=dict(
+            values=list(preview.columns),
+            fill_color='lightgray',
+            align='left'
+        ),
+        cells=dict(
+            values=[preview[col] for col in preview.columns],
+            align='left'
+        )
     )])
+
     return fig
+# Callback to update the Monthly Unique Customers line chart
 @app.callback(
     Output('customer-growth-line', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -704,21 +758,33 @@ def update_raw_table(selected_clusters, selected_countries, start_date, end_date
     Input('date-range-picker', 'end_date')
 )
 def update_customer_growth(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters if none selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
+    
+    # Use all countries if none selected
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Apply filters to main dataset based on selections
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
 
-    monthly_growth = filtered.groupby('YearMonth')['CustomerID'].nunique().reset_index()
+    # Group by YearMonth to count unique customers per month
+    monthly_growth = (
+        filtered.groupby('YearMonth')['CustomerID']
+        .nunique()
+        .reset_index()
+    )
+
+    # Convert YearMonth to proper datetime for plotting
     monthly_growth['YearMonth'] = pd.to_datetime(monthly_growth['YearMonth'])
 
+    # Line chart for visualizing unique customer growth over time
     fig = px.line(
         monthly_growth,
         x='YearMonth',
@@ -726,13 +792,22 @@ def update_customer_growth(selected_clusters, selected_countries, start_date, en
         markers=True,
         title='Monthly Unique Customers',
         labels={'CustomerID': 'Unique Customers', 'YearMonth': 'Month'},
-        template= None
+        # No default theme to keep custom styling
+        template=None  
     )
 
-    fig.update_layout(height=400, margin=dict(t=50, l=20, r=20, b=40))
-    fig.update_traces(line=dict(color='#17a2b8', width=3),
-                      hovertemplate='%{x|%b %Y}<br>Customers: %{y}')
+    # Styling the line and hover text
+    fig.update_layout(
+        height=400,
+        margin=dict(t=50, l=20, r=20, b=40)
+    )
+    fig.update_traces(
+        line=dict(color='#17a2b8', width=3),
+        hovertemplate='%{x|%b %Y}<br>Customers: %{y}'
+    )
+
     return fig
+# Callback to update the Monthly Revenue Heatmap by Country
 @app.callback(
     Output('revenue-heatmap', 'figure'),
     Input('cluster-dropdown', 'value'),
@@ -741,28 +816,43 @@ def update_customer_growth(selected_clusters, selected_countries, start_date, en
     Input('date-range-picker', 'end_date')
 )
 def update_revenue_heatmap(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters if none selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
+    
+    # Use all countries if none selected
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
+    # Filter dataset based on selections
     filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-    if filtered.empty:
-        return px.imshow([[0]], labels=dict(x="Month", y="Country", color="Revenue"),
-                         title="No Data Available")
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
 
-    # Create 'Month' and group
+    # If no data after filtering, return empty placeholder heatmap
+    if filtered.empty:
+        return px.imshow(
+            [[0]],
+            labels=dict(x="Month", y="Country", color="Revenue"),
+            title="No Data Available"
+        )
+
+    # Extract Year-Month and group revenue by Country and Month
     filtered = filtered.copy()
     filtered['Month'] = filtered['InvoiceDate'].dt.to_period('M').astype(str)
     pivot = filtered.pivot_table(
-        index='Country', columns='Month', values='Revenue', aggfunc='sum', fill_value=0
+        index='Country',
+        columns='Month',
+        values='Revenue',
+        aggfunc='sum',
+        # Fill missing values with 0
+        fill_value=0  
     )
 
+    # Create heatmap using Plotly's imshow
     fig = px.imshow(
         pivot,
         aspect='auto',
@@ -771,139 +861,39 @@ def update_revenue_heatmap(selected_clusters, selected_countries, start_date, en
         title="Monthly Revenue Heatmap by Country"
     )
 
-    fig.update_layout(margin=dict(t=40, l=20, r=20, b=40), height=500)
+    # Adjust layout for better viewing
+    fig.update_layout(
+        margin=dict(t=40, l=20, r=20, b=40),
+        height=500
+    )
+
     return fig
+# Callback to reset the selected customer ID when the reset button is clicked
 @app.callback(
-    Output('customer-id-dropdown', 'value'),
-    Input('reset-button', 'n_clicks'),
-    prevent_initial_call=True
+    Output('customer-id-dropdown', 'value'),     
+    Input('reset-button', 'n_clicks'),          
+    prevent_initial_call=True                   
 )
-def reset_customer_id(n_clicks):
+def reset_customer_selection(n_clicks):
+    # Return None to clear the selection in the Customer ID dropdown
     return None
 @app.callback(
-    Output('returning-vs-onetime-bar', 'figure'),
-    Input('cluster-dropdown', 'value'),
-    Input('country-dropdown', 'value'),
-    Input('date-range-picker', 'start_date'),
-    Input('date-range-picker', 'end_date')
+    Output('returning-vs-onetime-bar', 'figure'),    
+    Input('cluster-dropdown', 'value'),               
+    Input('country-dropdown', 'value'),               
+    Input('date-range-picker', 'start_date'),         
+    Input('date-range-picker', 'end_date')            
 )
 def update_returning_vs_onetime(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters if none are selected
     if not selected_clusters:
         selected_clusters = rfm['Cluster'].unique().tolist()
+
+    # Use all countries if none are selected
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
-    filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-
-    # Count orders per customer
-    order_counts = filtered.groupby('CustomerID')['InvoiceNo'].nunique().reset_index()
-    order_counts['Type'] = order_counts['InvoiceNo'].apply(lambda x: 'Returning' if x > 1 else 'One-Time')
-
-    summary = order_counts['Type'].value_counts().reset_index()
-    summary.columns = ['Customer Type', 'Count']
-
-    fig = px.bar(
-        summary,
-        x='Customer Type',
-        y='Count',
-        color='Customer Type',
-        title='Returning vs One-Time Customers',
-        color_discrete_map={'Returning': '#28a745', 'One-Time': '#dc3545'}
-    )
-
-    fig.update_layout(template='plotly_white', height=400, margin=dict(t=50, l=20, r=20, b=40))
-    fig.update_traces(hovertemplate="Customer Type: %{x}<br>Count: %{y}<extra></extra>")
-
-    return fig
-data['Country'] = data['Country'].replace({
-    'United Kingdom': 'UK',
-    'EIRE': 'Ireland'
-})
-@app.callback(
-    Output('revenue-region-map', 'figure'),
-    Input('cluster-dropdown', 'value'),
-    Input('country-dropdown', 'value'),
-    Input('date-range-picker', 'start_date'),
-    Input('date-range-picker', 'end_date')
-)
-def update_revenue_map(selected_clusters, selected_countries, start_date, end_date):
-    if not selected_clusters:
-        selected_clusters = rfm['Cluster'].unique().tolist()
-    if not selected_countries:
-        selected_countries = data['Country'].unique().tolist()
-
-    # Filtered data
-    filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-
-    # Group by country
-    country_rev = filtered.groupby('Country')['Revenue'].sum().reset_index()
-
-    fig = px.choropleth(
-        country_rev,
-        locations='Country',
-        locationmode='country names',
-        color='Revenue',
-        color_continuous_scale='Viridis',
-        title='Revenue by Country (Map)'
-    )
-
-    fig.update_layout(
-        geo=dict(showframe=False, showcoastlines=False),
-        height=500,
-        margin=dict(t=40, l=10, r=10, b=10)
-    )
-
-    fig.update_traces(
-        hovertemplate="<b>%{location}</b><br>Revenue: $%{z:,.2f}<extra></extra>"
-    )
-
-    return fig
-@app.callback(
-    Output("download-dataframe-csv", "data"),
-    Input("download-btn", "n_clicks"),
-    State("cluster-dropdown", "value"),
-    State("country-dropdown", "value"),
-    State("date-range-picker", "start_date"),
-    State("date-range-picker", "end_date"),
-    prevent_initial_call=True
-)
-def download_csv(n_clicks, selected_clusters, selected_countries, start_date, end_date):
-    if not selected_clusters:
-        selected_clusters = rfm['Cluster'].unique().tolist()
-    if not selected_countries:
-        selected_countries = data['Country'].unique().tolist()
-
-    filtered = data[
-    (data['Cluster'].isin(selected_clusters)) &
-    (data['Country'].isin(selected_countries)) &
-    (data['InvoiceDate'] >= start_date) &
-    (data['InvoiceDate'] <= end_date)
-]
-    return dcc.send_data_frame(filtered.to_csv, filename="filtered_data.csv", index=False)
-@app.callback(
-    Output('insights-box', 'children'),
-    Input('cluster-dropdown', 'value'),
-    Input('country-dropdown', 'value'),
-    Input('date-range-picker', 'start_date'),
-    Input('date-range-picker', 'end_date')
-)
-def update_insights(selected_clusters, selected_countries, start_date, end_date):
-    if not selected_clusters:
-        selected_clusters = rfm['Cluster'].unique().tolist()
-    if not selected_countries:
-        selected_countries = data['Country'].unique().tolist()
-
-    # Filter
+    # Apply filters to the original transactional data
     filtered = data[
         (data['Cluster'].isin(selected_clusters)) &
         (data['Country'].isin(selected_countries)) &
@@ -911,31 +901,181 @@ def update_insights(selected_clusters, selected_countries, start_date, end_date)
         (data['InvoiceDate'] <= end_date)
     ]
 
+    # Group by customer to count unique invoices (orders)
+    order_counts = filtered.groupby('CustomerID')['InvoiceNo'].nunique().reset_index()
+
+    # Label customers as 'Returning' if they have more than 1 order, else 'One-Time'
+    order_counts['Type'] = order_counts['InvoiceNo'].apply(lambda x: 'Returning' if x > 1 else 'One-Time')
+
+    # Summarize count of each customer type
+    summary = order_counts['Type'].value_counts().reset_index()
+    summary.columns = ['Customer Type', 'Count']
+
+    # Create bar chart
+    fig = px.bar(
+        summary,
+        x='Customer Type',
+        y='Count',
+        color='Customer Type',
+        title='Returning vs One-Time Customers',
+        color_discrete_map={
+            'Returning': '#28a745',   
+            'One-Time': '#dc3545'     
+        }
+    )
+
+    # Update layout and hover info
+    fig.update_layout(template='plotly_white', height=400, margin=dict(t=50, l=20, r=20, b=40))
+    fig.update_traces(
+        hovertemplate="Customer Type: %{x}<br>Count: %{y}<extra></extra>"
+    )
+
+    return fig
+## for consistency in country names
+data['Country'] = data['Country'].replace({
+    'United Kingdom': 'UK',
+    'EIRE': 'Ireland'
+})
+# Callback to update the choropleth map showing revenue by country
+@app.callback(
+    Output('revenue-region-map', 'figure'),           
+    Input('cluster-dropdown', 'value'),               
+    Input('country-dropdown', 'value'),
+    Input('date-range-picker', 'start_date'),         
+    Input('date-range-picker', 'end_date')           
+)
+def update_revenue_map(selected_clusters, selected_countries, start_date, end_date):
+    # If no clusters are selected, include all clusters
+    if not selected_clusters:
+        selected_clusters = rfm['Cluster'].unique().tolist()
+    
+    # If no countries are selected, include all countries
+    if not selected_countries:
+        selected_countries = data['Country'].unique().tolist()
+
+    # Filter the dataset based on cluster, country, and date range
+    filtered = data[
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
+
+    # Group data by country to calculate total revenue per country
+    country_rev = filtered.groupby('Country')['Revenue'].sum().reset_index()
+
+    # Create a choropleth (map) using Plotly Express
+    fig = px.choropleth(
+        country_rev,
+        locations='Country',                     # Column with country names
+        locationmode='country names',            # Using country names instead of ISO codes
+        color='Revenue',                         # Filling color based on revenue
+        color_continuous_scale='Viridis',        # Using a visually appealing color scale
+        title='Revenue by Country (Map)'         # Title of the map
+    )
+
+    # Clean up map layout 
+    fig.update_layout(
+        geo=dict(showframe=False, showcoastlines=False),
+        height=500,
+        margin=dict(t=40, l=10, r=10, b=10)
+    )
+
+    # Customize hover tooltip
+    fig.update_traces(
+        hovertemplate="<b>%{location}</b><br>Revenue: $%{z:,.2f}<extra></extra>"
+    )
+
+    return fig
+# Callback to allow downloading the filtered dataset as a CSV file
+@app.callback(
+    Output("download-dataframe-csv", "data"),        
+    Input("download-btn", "n_clicks"),              
+    State("cluster-dropdown", "value"),            
+    State("country-dropdown", "value"),         
+    State("date-range-picker", "start_date"),     
+    State("date-range-picker", "end_date"),          
+    prevent_initial_call=True                      
+)
+def download_csv(n_clicks, selected_clusters, selected_countries, start_date, end_date):
+    # Default to all clusters if none are selected
+    if not selected_clusters:
+        selected_clusters = rfm['Cluster'].unique().tolist()
+
+    # Default to all countries if none are selected
+    if not selected_countries:
+        selected_countries = data['Country'].unique().tolist()
+
+    # Filter data based on selections
+    filtered = data[
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
+
+    # Return downloadable CSV using Dash utility
+    return dcc.send_data_frame(filtered.to_csv, filename="filtered_data.csv", index=False)
+@app.callback(
+    Output('insights-box', 'children'), 
+    Input('cluster-dropdown', 'value'),  
+    Input('country-dropdown', 'value'),  
+    Input('date-range-picker', 'start_date'), 
+    Input('date-range-picker', 'end_date')   
+)
+def update_insights(selected_clusters, selected_countries, start_date, end_date):
+    # Use all clusters if none selected
+    if not selected_clusters:
+        selected_clusters = rfm['Cluster'].unique().tolist()
+
+    # Use all countries if none selected
+    if not selected_countries:
+        selected_countries = data['Country'].unique().tolist()
+
+    # Apply filters to the main dataset
+    filtered = data[
+        (data['Cluster'].isin(selected_clusters)) &
+        (data['Country'].isin(selected_countries)) &
+        (data['InvoiceDate'] >= start_date) &
+        (data['InvoiceDate'] <= end_date)
+    ]
+
+    # If no data remains after filtering, show a fallback message
     if filtered.empty:
         return "No data available for the selected filters and date range."
 
+    # Total number of unique customers and total revenue
     total_customers = filtered['CustomerID'].nunique()
     total_revenue = filtered['Revenue'].sum()
 
+    # Best-performing country and customer (by revenue)
     top_country = filtered.groupby('Country')['Revenue'].sum().idxmax()
     top_customer = filtered.groupby('CustomerID')['Revenue'].sum().idxmax()
+
+    # Average revenue per customer
     avg_revenue_per_customer = total_revenue / total_customers
 
-    # Monthly revenue
+    # Prepare monthly revenue trend
     monthly = filtered.copy()
     monthly['YearMonth'] = monthly['InvoiceDate'].dt.to_period('M').astype(str)
     monthly['YearMonth'] = pd.to_datetime(monthly['YearMonth'])
-    monthly_rev = monthly.groupby('YearMonth')['Revenue'].sum().reset_index().sort_values('YearMonth')
 
-    # Best/Worst months
+    monthly_rev = (
+        monthly.groupby('YearMonth')['Revenue']
+        .sum()
+        .reset_index()
+        .sort_values('YearMonth')
+    )
+
+    # Identify best and worst performing months
     best_month = monthly_rev.loc[monthly_rev['Revenue'].idxmax()]
     worst_month = monthly_rev.loc[monthly_rev['Revenue'].idxmin()]
 
-    # Detect anomalies
+    # Detect sudden spikes/dips in revenue
     anomalies = detect_anomalies(monthly_rev, column='Revenue', threshold=2.0)
     anomaly_text = '\n\n'.join(anomalies) if anomalies else "No unusual changes in recent revenue."
 
-    # Final insight string
+    # Construct formatted business summary text
     insights = f"""
 **Summary for Selected Period**
 
@@ -969,10 +1109,10 @@ def download_pdf(n_clicks, selected_clusters, selected_countries, start_date, en
     if not selected_countries:
         selected_countries = data['Country'].unique().tolist()
 
-    # 🛠 Generate updated insights based on filters
+    # Generate updated insights based on filters
     insights = update_insights(selected_clusters, selected_countries, start_date, end_date)
 
-    # 🛠 Build & save PDF, get path
+    # Build & save PDF, get path
     pdf_path = build_and_return_pdf(data, rfm, insights)  # this should return: reports/Customer_Segmentation_Report.pdf
 
     # Now safely send file
