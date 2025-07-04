@@ -3,8 +3,6 @@ import pandas as pd
 import plotly.express as px
 import matplotlib
 matplotlib.use('Agg') 
-import matplotlib.pyplot as plt
-import seaborn as sns
 from fpdf import FPDF
 import kaleido
 import re
