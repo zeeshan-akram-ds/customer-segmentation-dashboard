@@ -39,7 +39,7 @@ You can interact with the fully functional Customer Segmentation Dashboard here:
 
 **[Launch Live App on Replit](https://76185987-9975-4670-998e-c6a95ed53207-00-3ds4baow1nkz1.pike.replit.dev/)**  
 *(Note: It may take a few seconds to load if the server is temporarily asleep.)*
-
+*(Note: Due to hosting limitations, PDF report export works in the local version only.)*
 ## Tools & Technologies Used
 
 * **Language:** Python
