@@ -14,8 +14,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.metrics import silhouette_score
 import dash
 from dash import dcc, html, Input, Output, State
