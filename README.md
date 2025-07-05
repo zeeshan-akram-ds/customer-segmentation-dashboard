@@ -77,10 +77,11 @@ Below are snapshots of various interactive components of the dashboard:
 
 ---
 
-## Live Demo Video
+## 🎥 Project Video Demo
 
-**Watch the full walkthrough:**  
-[Click to Watch Dashboard Demo](screenshots/Dashboard_Video.mp4)
+Watch a walkthrough of the full interactive dashboard:
+
+[Watch on YouTube](https://youtu.be/nMG-BwiPoaY?si=qoCwsMum5NvBVX5K)
 
 ---
 ## Sample PDF Report
