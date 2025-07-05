@@ -33,14 +33,57 @@ In the evolving retail landscape, understanding customer behavior is critical fo
 
 ---
 
-## Live Dashboard
+## Live Dashboard (Limited)
 
-You can interact with the fully functional Customer Segmentation Dashboard here:
+You can explore the interactive Customer Segmentation Dashboard here:
 
 **[Launch Live App on Replit](https://76185987-9975-4670-998e-c6a95ed53207-00-3ds4baow1nkz1.pike.replit.dev/)**  
-*(Note: It may take a few seconds to load if the server is temporarily asleep.)* 
+*Note: May take a few seconds to load.*
 
-*(Due to hosting limitations, PDF report export works in the local version only.)*
+**Important:** Due to deployment platform limitations (e.g. PDF generation, larger file sizes), this dashboard is best run **locally** for full features like PDF report export.
+
+---
+
+## Dashboard Preview
+
+Below are snapshots of various interactive components of the dashboard:
+
+- Monthly Revenue Trend  
+  ![Monthly Revenue](screenshots/Monthly Revenue Line Chart.png)
+
+- Top 10 Customers  
+  ![Top Customers](screenshots/Top 10 Customers Bar Chart.png)
+
+- Revenue by Country (Choropleth Map)  
+  ![Revenue Map](screenshots/Revenue Map (Choropleth).png)
+
+- RFM Scatter Plot  
+  ![RFM Scatter](screenshots/RFM Scatter Plot.png)
+
+- Heatmap of Monthly Revenue  
+  ![Revenue Heatmap](screenshots/Heatmap revenue.png)
+
+- KPIs Summary  
+  ![KPIs](screenshots/KPIs.png)
+
+- Customer Search + Reset  
+  ![Customer Search](screenshots/Customer Search by ID and reset button.png)
+
+- Insights Box  
+  ![Insights Box](screenshots/Insights Box with Dynamic Text.png)
+
+- Tab Navigation  
+  ![Tabs](screenshots/Tabs in Action.png)
+
+---
+
+## Live Demo Video
+
+**Watch the full walkthrough:**  
+[Click to Watch Dashboard Demo](screenshots/Dashboard video.mp4)
+
+---
+
 ## Tools & Technologies Used
 
 * **Language:** Python
