@@ -49,7 +49,7 @@ You can explore the interactive Customer Segmentation Dashboard here:
 Below are snapshots of various interactive components of the dashboard:
 
 - Monthly Revenue Trend  
-  ![Monthly Revenue](screenshots/Monthly Revenue Line Chart.png)
+  ![Monthly Revenue](screenshots/"Monthly Revenue Line Chart.png")
 
 - Top 10 Customers  
   ![Top Customers](screenshots/Top 10 Customers Bar Chart.png)
@@ -83,6 +83,13 @@ Below are snapshots of various interactive components of the dashboard:
 [Click to Watch Dashboard Demo](screenshots/Dashboard video.mp4)
 
 ---
+## Sample PDF Report
+
+Here’s a sample report generated using the dashboard’s built-in PDF export feature:
+
+[Download Sample PDF Report](reports/Customer_Segmentation_Report.pdf)
+
+> This report includes revenue trends, top customers, RFM segmentation plots, and executive insights — all generated dynamically based on dashboard filters.
 
 ## Tools & Technologies Used
 
