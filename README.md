@@ -49,38 +49,38 @@ You can explore the interactive Customer Segmentation Dashboard here:
 Below are snapshots of various interactive components of the dashboard:
 
 - Monthly Revenue Trend  
-  ![Monthly Revenue](screenshots/"Monthly Revenue Line Chart.png")
+  ![Monthly Revenue](screenshots/"Monthly_Revenue_Line_Chart.png")
 
 - Top 10 Customers  
-  ![Top Customers](screenshots/Top 10 Customers Bar Chart.png)
+  ![Top Customers](screenshots/Top_10_Customers_Bar_Chart.png)
 
 - Revenue by Country (Choropleth Map)  
-  ![Revenue Map](screenshots/Revenue Map (Choropleth).png)
+  ![Revenue Map](screenshots/Revenue_Map_(Choropleth).png)
 
 - RFM Scatter Plot  
-  ![RFM Scatter](screenshots/RFM Scatter Plot.png)
+  ![RFM Scatter](screenshots/RFM_Scatter_Plot.png)
 
 - Heatmap of Monthly Revenue  
-  ![Revenue Heatmap](screenshots/Heatmap revenue.png)
+  ![Revenue Heatmap](screenshots/Heatmap_revenue.png)
 
 - KPIs Summary  
   ![KPIs](screenshots/KPIs.png)
 
 - Customer Search + Reset  
-  ![Customer Search](screenshots/Customer Search by ID and reset button.png)
+  ![Customer Search](screenshots/Customer_Search_by_ID_and_reset_button.png)
 
 - Insights Box  
-  ![Insights Box](screenshots/Insights Box with Dynamic Text.png)
+  ![Insights Box](screenshots/Insights_Box_with_Dynamic_Text.png)
 
 - Tab Navigation  
-  ![Tabs](screenshots/Tabs in Action.png)
+  ![Tabs](screenshots/Tabs_in_Action.png)
 
 ---
 
 ## Live Demo Video
 
 **Watch the full walkthrough:**  
-[Click to Watch Dashboard Demo](screenshots/Dashboard video.mp4)
+[Click to Watch Dashboard Demo](screenshots/Dashboard_video.mp4)
 
 ---
 ## Sample PDF Report
